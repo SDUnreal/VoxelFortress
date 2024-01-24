@@ -56,8 +56,9 @@ public:
 	int targetAxis = XAxis;
 
 
-	TArray<float> voxels; // 저장해야하는 데이터 -> txt나 그외.. 언리얼에서 찾아볼게요
+	TArray<int> voxels; // 맵데이터
 	TArray<AMarchingChunk*> chunks;
+	int chunkArrSize = 0;
 	FVoxelDataSturct data;
 
 
@@ -85,7 +86,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "ChunkWorld")
 	void DrawVertex(float LifeTime);
 
-	void SetVoxels(const TArray<float>& Voxels);
+	void SetVoxels(const TArray<int>& Voxels);
 
 	int GetVoxelIndex(int x, int y, int z) const;
 

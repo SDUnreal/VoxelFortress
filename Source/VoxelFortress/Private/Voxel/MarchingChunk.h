@@ -31,7 +31,7 @@ protected:
 
 
 private:
-	TArray<float> voxels;	//해당 배열은 복셀의 큐브들을 지정하는 것이 아닌, 큐브들의 꼭짓점들을 지정함.
+	TSharedPtr<TArray<int>> voxelsPtr;	//해당 배열은 복셀의 큐브들을 지정하는 것이 아닌, 큐브들의 꼭짓점들을 지정함.
 	int triangleOrder[3] = { 0, 1, 2 };
 
 	void March(int x, int y, int z, const float cube[8]);
@@ -39,6 +39,9 @@ private:
 	int GetVoxelIndex(int x, int y, int z) const;
 
 	float GetInterPolationOffset(float V1, float V2) const;
+
+	int chunkNumber = 0;
+	int drawDistance = 0;
 
 	const int VertexOffset[8][3] = {
 	{0, 0, 0}, {1, 0, 0}, {1, 1, 0}, {0, 1, 0},
@@ -336,6 +339,10 @@ private:
 	};
 
 public:
-	void SetVoxels(TArray<float> Voxels) { this->voxels = Voxels; }
+	void SetVoxels(TArray<int> Voxels) { voxelsPtr = MakeShared<TArray<int>>(Voxels);	}
+	bool CompareVoxels(TArray<int> Voxels);
+
+	void SetChunkNumber(int Num) { this->chunkNumber = Num; }
+	void SetDrawDistance(int DrawDistance) { this->drawDistance = DrawDistance; }
 
 };
