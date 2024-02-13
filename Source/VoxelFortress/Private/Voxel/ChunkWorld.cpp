@@ -28,7 +28,8 @@ void AChunkWorld::BeginPlay()
 	{
 		voxels[i] = 1;
 	}
-	chunks.Init(nullptr, chunkArrSize);
+	chunks.Init(0, chunkArrSize);
+	updatedVoxels.Init(true, chunkArrSize);
 
 	Super::BeginPlay();
 	directory = TEXT("");
@@ -50,23 +51,22 @@ void AChunkWorld::BuildWorld()
 	{
 		for (int x = 0; x < DrawDistance; x++)
 		{
-			if (chunks[y * DrawDistance + x] != nullptr)
+			int tempIndex = GetUpdatedVoxelIndex(x, y);
+			if (updatedVoxels[tempIndex])
 			{
-				if (chunks[y * DrawDistance + x]->CompareVoxels(voxels))
-					continue;
-				else
+				if (chunks[tempIndex])
 				{
-					chunks[y * DrawDistance + x]->Destroy();
-				}
-			}
-			//chunks[y * DrawDistance + x ] = GetWorld()->SpawnActor<class AMarchingChunk>(Chunk, FVector(ChunkSize * CubeSize * x, ChunkSize * CubeSize * y, zPosition), FRotator::ZeroRotator);
-			chunks[y * DrawDistance + x] = GetWorld()->SpawnActor<class AMarchingChunk>(Chunk, FVector(x, y, zPosition), FRotator::ZeroRotator);
-			chunks[y * DrawDistance + x]->SetChunkNumber(y * DrawDistance + x);
-			chunks[y * DrawDistance + x]->SetDrawDistance(DrawDistance);
-			chunks[y * DrawDistance + x]->SetChunkSize(ChunkSize);
-			chunks[y * DrawDistance + x]->SetCubeSize(CubeSize);
-			chunks[y * DrawDistance + x]->SetVoxels(voxels);
-			chunks[y * DrawDistance + x]->GenerateTerrian();
+					chunks[tempIndex]->Destroy();
+				}	
+				chunks[tempIndex] = GetWorld()->SpawnActor<class AMarchingChunk>(Chunk, FVector(x, y, zPosition), FRotator::ZeroRotator);
+				chunks[tempIndex]->SetChunkNumber(tempIndex);
+				chunks[tempIndex]->SetDrawDistance(DrawDistance);
+				chunks[tempIndex]->SetChunkSize(ChunkSize);
+				chunks[tempIndex]->SetCubeSize(CubeSize);
+				chunks[tempIndex]->SetVoxels(voxels);
+				chunks[tempIndex]->GenerateTerrian();
+				updatedVoxels[tempIndex] = false;
+			}		
 		}
 	}
 	UE_LOG(LogTemp, Warning, TEXT("buildfinish"));
@@ -100,6 +100,83 @@ void AChunkWorld::DrawVertex(float LifeTime)
 	targetVertexColorCount *= -1;
 }
 
+void AChunkWorld::MakeCrater(int Size, const FVector Location)
+{
+	FVector Target;
+	Target.X = round(Location.X / CubeSize);
+	Target.Y = round(Location.Y / CubeSize);
+	Target.Z = round(Location.Z / CubeSize);
+
+	UE_LOG(LogTemp, Log, TEXT("Location : %s, TargetLocation : %s"), *Location.ToString(), *Target.ToString());
+
+	int TargetIndex = 0;
+
+	int minX = FMath::Max(0, Target.X - Size / 2);
+	int maxX = FMath::Min(ChunkSize * DrawDistance, Target.X + Size / 2);
+
+	int minY = FMath::Max(0, Target.Y - Size / 2);
+	int maxY = FMath::Min(ChunkSize * DrawDistance, Target.Y + Size / 2);
+
+	int minZ = FMath::Max(0, Target.Z - Size / 2);
+	int maxZ = FMath::Min(ChunkSize * DrawDistance, Target.Z + Size / 2);
+
+	for (int x = minX; x <= maxX; x++)
+	{
+		for (int y = minY; y <= maxY; y++)
+		{
+			for (int z = minZ; z <= maxZ; z++)
+			{
+				int index = GetVoxelIndex(x, y, z);
+				if (voxels[index] == 1)
+				{
+					voxels[index] = -1;
+					updatedVoxels[GetUpdatedVoxelIndex(x, y)] = true;
+					UE_LOG(LogTemp, Log, TEXT("changedIndex : % d"), GetUpdatedVoxelIndex(x , y));
+					if (x > maxX && x < ChunkSize * DrawDistance)
+					{
+						voxels[GetVoxelIndex(x + 1, y, z)] = 1;
+						updatedVoxels[GetUpdatedVoxelIndex(x+1, y)] = true;
+						UE_LOG(LogTemp, Log, TEXT("changedIndex : % d"), GetUpdatedVoxelIndex(x + 1, y));
+					}
+					else if (x < minX && x > 0)
+					{
+						voxels[GetVoxelIndex(x - 1, y, z)] = 1;
+						updatedVoxels[GetUpdatedVoxelIndex(x-1, y)] = true;
+						UE_LOG(LogTemp, Log, TEXT("changedIndex : % d"), GetUpdatedVoxelIndex(x - 1, y));
+					}
+
+					if (y > maxY && y < ChunkSize * DrawDistance)
+					{
+						voxels[GetVoxelIndex(x , y + 1, z)] = 1;
+						updatedVoxels[GetUpdatedVoxelIndex(x, y+1)] = true;
+						UE_LOG(LogTemp, Log, TEXT("changedIndex : % d"), GetUpdatedVoxelIndex(x, y+1));
+					}
+					else if (y < minY && y > 0)
+					{
+						voxels[GetVoxelIndex(x, y - 1, z)] = 1;
+						updatedVoxels[GetUpdatedVoxelIndex(x, y-1)] = true;
+						UE_LOG(LogTemp, Log, TEXT("changedIndex : % d"), GetUpdatedVoxelIndex(x , y-1));
+					}
+
+					if (z+1 > maxZ && z+1 < ChunkSize * DrawDistance)
+					{
+						if (voxels[GetVoxelIndex(x, y, z + 2)] == 1)
+						{
+							voxels[GetVoxelIndex(x, y, z)] = 1;
+							UE_LOG(LogTemp, Log, TEXT("changedIndex : % d"), GetUpdatedVoxelIndex(x, y));
+						}
+					}
+					else if (z < minZ && z > 0)
+					{
+						voxels[GetVoxelIndex(x, y, z - 1)] = 1;
+						UE_LOG(LogTemp, Log, TEXT("changedIndex : % d"), GetUpdatedVoxelIndex(x, y));
+					}
+				}				
+			}
+		}
+	}
+}
+
 void AChunkWorld::SetVoxels(const TArray<int>& Voxels)
 {
 	this->voxels = Voxels;
@@ -108,6 +185,11 @@ void AChunkWorld::SetVoxels(const TArray<int>& Voxels)
 int AChunkWorld::GetVoxelIndex(int x, int y, int z) const
 {
 	return z * (ChunkSize) * (ChunkSize)*DrawDistance * DrawDistance + y * (ChunkSize)*DrawDistance + x;
+}
+
+int AChunkWorld::GetUpdatedVoxelIndex(int x, int y) const
+{
+	return y * DrawDistance + x;
 }
 
 
@@ -142,3 +224,4 @@ void AChunkWorld::LoadMaps()
 	}
 	directory = TEXT("");
 }
+

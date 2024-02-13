@@ -16,7 +16,7 @@ class AChunkWorld : public AActor
 
 	GENERATED_BODY()
 
-public:
+private:
 	enum EAxis
 	{
 		XAxis = 0,
@@ -55,14 +55,13 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "editer")
 	int targetAxis = XAxis;
 
+private:
 
 	TArray<int> voxels; // 맵데이터
 	TArray<AMarchingChunk*> chunks;
 	int chunkArrSize = 0;
 	FVoxelDataSturct data;
-
-
-
+	TArray<bool> updatedVoxels;
 
 	// 파일탐색기 관련 데이터들
 	TArray<FString> directories;
@@ -71,6 +70,7 @@ public:
 
 	int targetVertexColorCount = 1;
 	int debugDrawCount = 0;
+
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
@@ -86,9 +86,17 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "ChunkWorld")
 	void DrawVertex(float LifeTime);
 
+	UFUNCTION(BlueprintCallable, Category = "Collision")
+	void MakeCrater(int Size, const FVector Location);
+
 	void SetVoxels(const TArray<int>& Voxels);
 
+	UFUNCTION(BlueprintCallable, Category = "ChunkWorld")
+	const TArray<AMarchingChunk*> GetChunks() { return chunks; }
+
 	int GetVoxelIndex(int x, int y, int z) const;
+
+	int GetUpdatedVoxelIndex(int x, int y) const;
 
 	UFUNCTION(BlueprintCallable, Category = "editor")
 	void LoadMaps();
