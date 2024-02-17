@@ -2,7 +2,7 @@
 
 
 #include "Voxel/ChunkWorld.h"
-
+#include "GenericPlatform/GenericPlatformMath.h"
 #include "Misc/FileHelper.h"
 #include "JsonObjectConverter.h"
 #include "Templates/SharedPointer.h"
@@ -130,31 +130,31 @@ void AChunkWorld::MakeCrater(int Size, const FVector Location)
 				if (voxels[index] == 1)
 				{
 					voxels[index] = -1;
-					updatedVoxels[GetUpdatedVoxelIndex(x, y)] = true;
+					updatedVoxels[GetUpdatedVoxelIndex((int32)(x / DrawDistance), (int32)(y / DrawDistance))] = true;
 					UE_LOG(LogTemp, Log, TEXT("changedIndex : % d"), GetUpdatedVoxelIndex(x , y));
 					if (x > maxX && x < ChunkSize * DrawDistance)
 					{
 						voxels[GetVoxelIndex(x + 1, y, z)] = 1;
-						updatedVoxels[GetUpdatedVoxelIndex(x+1, y)] = true;
+						updatedVoxels[GetUpdatedVoxelIndex((int32)(x + 1 / DrawDistance), (int32)(y / DrawDistance))] = true;
 						UE_LOG(LogTemp, Log, TEXT("changedIndex : % d"), GetUpdatedVoxelIndex(x + 1, y));
 					}
 					else if (x < minX && x > 0)
 					{
 						voxels[GetVoxelIndex(x - 1, y, z)] = 1;
-						updatedVoxels[GetUpdatedVoxelIndex(x-1, y)] = true;
+						updatedVoxels[GetUpdatedVoxelIndex((int32)(x-1 / DrawDistance), (int32)(y / DrawDistance))] = true;
 						UE_LOG(LogTemp, Log, TEXT("changedIndex : % d"), GetUpdatedVoxelIndex(x - 1, y));
 					}
 
 					if (y > maxY && y < ChunkSize * DrawDistance)
 					{
 						voxels[GetVoxelIndex(x , y + 1, z)] = 1;
-						updatedVoxels[GetUpdatedVoxelIndex(x, y+1)] = true;
+						updatedVoxels[GetUpdatedVoxelIndex((int32)(x / DrawDistance), (int32)(y+1 / DrawDistance))] = true;
 						UE_LOG(LogTemp, Log, TEXT("changedIndex : % d"), GetUpdatedVoxelIndex(x, y+1));
 					}
 					else if (y < minY && y > 0)
 					{
 						voxels[GetVoxelIndex(x, y - 1, z)] = 1;
-						updatedVoxels[GetUpdatedVoxelIndex(x, y-1)] = true;
+						updatedVoxels[GetUpdatedVoxelIndex((int32)(x / DrawDistance), (int32)(y-1 / DrawDistance))] = true;
 						UE_LOG(LogTemp, Log, TEXT("changedIndex : % d"), GetUpdatedVoxelIndex(x , y-1));
 					}
 
@@ -177,6 +177,87 @@ void AChunkWorld::MakeCrater(int Size, const FVector Location)
 	}
 }
 
+void AChunkWorld::kdw_MakeCrater(int Size, const FVector Location)
+{
+
+	FVector Target;
+	Target.X = round(Location.X / CubeSize);
+	Target.Y = round(Location.Y / CubeSize);
+	Target.Z = round(Location.Z / CubeSize);
+
+
+	UE_LOG(LogTemp, Log, TEXT("Location : %s, TargetLocation : %s"), *Location.ToString(), *Target.ToString());
+
+	int TargetIndex = 0;
+
+	// 이부분을 조금 바꿔야할듯.
+	int minX = FMath::Max(0, Target.X - Size / 2);
+	int maxX = FMath::Min(ChunkSize * DrawDistance, Target.X + Size / 2);
+
+	int minY = FMath::Max(0, Target.Y - Size / 2);
+	int maxY = FMath::Min(ChunkSize * DrawDistance, Target.Y + Size / 2);
+
+	int minZ = FMath::Max(0, Target.Z - Size / 2);
+	int maxZ = FMath::Min(ChunkSize * DrawDistance, Target.Z + Size / 2);
+
+	for (int x = minX; x <= maxX; x++)
+	{
+		for (int y = minY; y <= maxY; y++)
+		{
+			for (int z = minZ; z <= maxZ; z++)
+			{
+				int index = GetVoxelIndex(x, y, z);
+				if (voxels[index] == 1)
+				{
+					voxels[index] = -1;
+					updatedVoxels[GetUpdatedVoxelIndex((int32)(x / DrawDistance), (int32)(y / DrawDistance))] = true;
+					UE_LOG(LogTemp, Log, TEXT("changedIndex : % d"), GetUpdatedVoxelIndex(x, y));
+					if (x > maxX && x < ChunkSize * DrawDistance)
+					{
+						voxels[GetVoxelIndex(x + 1, y, z)] = 1;
+						updatedVoxels[GetUpdatedVoxelIndex((int32)(x+1 / DrawDistance), (int32)(y / DrawDistance))] = true;
+						UE_LOG(LogTemp, Log, TEXT("changedIndex : % d"), GetUpdatedVoxelIndex(x + 1, y));
+					}
+					else if (x < minX && x > 0)
+					{
+						voxels[GetVoxelIndex(x - 1, y, z)] = 1;
+						updatedVoxels[GetUpdatedVoxelIndex((int32)(x-1 / DrawDistance), (int32)(x / DrawDistance))] = true;
+						UE_LOG(LogTemp, Log, TEXT("changedIndex : % d"), GetUpdatedVoxelIndex(x - 1, y));
+					}
+
+					if (y > maxY && y < ChunkSize * DrawDistance)
+					{
+						voxels[GetVoxelIndex(x, y + 1, z)] = 1;
+						updatedVoxels[GetUpdatedVoxelIndex((int32)(x / DrawDistance), (int32)(y-1 / DrawDistance))] = true;
+						UE_LOG(LogTemp, Log, TEXT("changedIndex : % d"), GetUpdatedVoxelIndex(x, y + 1));
+					}
+					else if (y < minY && y > 0)
+					{
+						voxels[GetVoxelIndex(x, y - 1, z)] = 1;
+						updatedVoxels[GetUpdatedVoxelIndex((int32)(x / DrawDistance), (int32)(y-1 / DrawDistance))] = true;
+						UE_LOG(LogTemp, Log, TEXT("changedIndex : % d"), GetUpdatedVoxelIndex(x, y - 1));
+					}
+
+					if (z + 1 > maxZ && z + 1 < ChunkSize * DrawDistance)
+					{
+						if (voxels[GetVoxelIndex(x, y, z + 2)] == 1)
+						{
+							voxels[GetVoxelIndex(x, y, z)] = 1;
+							UE_LOG(LogTemp, Log, TEXT("changedIndex : % d"), GetUpdatedVoxelIndex(x, y));
+						}
+					}
+					else if (z < minZ && z > 0)
+					{
+						voxels[GetVoxelIndex(x, y, z - 1)] = 1;
+						UE_LOG(LogTemp, Log, TEXT("changedIndex : % d"), GetUpdatedVoxelIndex(x, y));
+					}
+				}
+			}
+		}
+	}
+}
+
+
 void AChunkWorld::SetVoxels(const TArray<int>& Voxels)
 {
 	this->voxels = Voxels;
@@ -189,6 +270,7 @@ int AChunkWorld::GetVoxelIndex(int x, int y, int z) const
 
 int AChunkWorld::GetUpdatedVoxelIndex(int x, int y) const
 {
+	//? 여기서 뻑나고있어용
 	return y * DrawDistance + x;
 }
 

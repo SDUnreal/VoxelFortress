@@ -86,8 +86,13 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "ChunkWorld")
 	void DrawVertex(float LifeTime);
 
+	// -> Error
 	UFUNCTION(BlueprintCallable, Category = "Collision")
 	void MakeCrater(int Size, const FVector Location);
+
+	UFUNCTION(BlueprintCallable, Category = "Collision")
+	void kdw_MakeCrater(int Size, const FVector Location);
+
 
 	void SetVoxels(const TArray<int>& Voxels);
 
